@@ -6,10 +6,11 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "skill:tophub": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/tophub-trends/tophub.ts",
-    "skill:combo": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/tophub-defou-stanley-combo/index.ts",
-    "skill:verify": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/viral-verification/index.ts",
     "skill:master": "ts-node src/master.ts",
     "skill:list": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/article-list-processor/index.ts",
+    "skill:local": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/local-file-rewriter/index.ts",
+    "skill:witty": "export NODE_PATH=./node_modules && ts-node --project tsconfig.json ./skills/witty-humor-style/index.ts",
+    "migrate:outputs": "ts-node scripts/migrate-outputs.ts",
     "build": "tsc"
   },
   "keywords": [],

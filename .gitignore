@@ -24,6 +24,9 @@ archive/
 processing/
 errors/
 local_inputs/
+input/
+archive_articles/
+local_articles/
 
 # Editor
 .vscode/

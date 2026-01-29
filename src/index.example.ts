@@ -1,3 +1,8 @@
+/**
+ * Example: Updated index.ts using the new outputManager
+ * This demonstrates how to migrate from the old output saving logic
+ */
+
 import fs from 'fs';
 import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
@@ -5,6 +10,7 @@ import chokidar from 'chokidar';
 import pLimit from 'p-limit';
 import { CONFIG } from './config';
 import { DEFOU_SYSTEM_PROMPT } from './templates';
+import { saveOutput, archiveFile, getOutputDir, createIndexFile } from './outputManager';
 
 // Limit concurrency to 2 simultaneous requests to avoid Rate Limits
 const limit = pLimit(2);
@@ -21,10 +27,10 @@ async function main() {
   // Watch Mode
   console.log(`👀 Watching for new files in: ${CONFIG.INPUT_DIR}`);
   console.log(`🚀 Concurrency limit: 2`);
-  
+
   const watcher = chokidar.watch(CONFIG.INPUT_DIR, {
     persistent: true,
-    ignoreInitial: false, // Process existing files on startup
+    ignoreInitial: false,
     awaitWriteFinish: {
       stabilityThreshold: 1000,
       pollInterval: 100
@@ -35,20 +41,17 @@ async function main() {
     const fileName = path.basename(filePath);
     if (!['.md', '.txt', '.json'].includes(path.extname(fileName))) return;
 
-    // Add a small delay to ensure file system is ready and avoid race conditions
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Check if file still exists before processing
+
     if (!fs.existsSync(filePath)) return;
 
-    // Use p-limit to wrap the processing task
     limit(() => processFile(filePath, fileName));
   });
 }
 
 async function processFile(filePath: string, fileName: string) {
-  console.log(`\n⏳ Detected: ${fileName}`);
-  
+  console.log(`\\n⏳ Detected: ${fileName}`);
+
   // 1. Move to Processing Directory
   const processingPath = path.join(CONFIG.PROCESSING_DIR, fileName);
   try {
@@ -66,7 +69,7 @@ async function processFile(filePath: string, fileName: string) {
     console.log(`   🤖 Generating content for ${fileName}...`);
 
     if (CONFIG.MOCK_MODE) {
-      await new Promise(r => setTimeout(r, 1000)); // Simulate delay
+      await new Promise(r => setTimeout(r, 1000));
       markdownContent = getMockResult();
     } else {
       const msg = await anthropic.messages.create({
@@ -75,39 +78,42 @@ async function processFile(filePath: string, fileName: string) {
         temperature: 0.7,
         system: DEFOU_SYSTEM_PROMPT,
         messages: [
-          { role: "user", content: `Here is the raw content:\n\n${content}` }
+          { role: "user", content: `Here is the raw content:\\n\\n${content}` }
         ]
       });
 
       markdownContent = (msg.content[0] as any).text;
     }
 
-    // 2. Generate Output with Header
-    const date = new Date().toLocaleString();
-    const finalOutput = `> **源文件**: \`${fileName}\`\n> **生成时间**: ${date}\n\n${markdownContent}`;
-    
-    const outputPath = path.join(CONFIG.OUTPUT_ARTICLES_DIR, `${path.basename(fileName, path.extname(fileName))}_report.md`);
-    fs.writeFileSync(outputPath, finalOutput);
+    // 2. Save Output using new outputManager
+    const outputPath = saveOutput({
+      outputDir: CONFIG.OUTPUT_ARTICLES_DIR,
+      content: markdownContent,
+      metadata: {
+        sourceType: 'input_file',
+        sourceFile: fileName,
+        sourceTitle: path.basename(fileName, path.extname(fileName)),
+        generatedAt: new Date(),
+        processedBy: 'defou-workflow-agent'
+      }
+    });
+
     console.log(`   ✅ Report saved: ${outputPath}`);
 
-    // 3. Move Original to Archive
-    const archivePath = path.join(CONFIG.ARCHIVE_DIR, fileName);
-    // Handle duplicate names in archive by appending timestamp
-    const finalArchivePath = fs.existsSync(archivePath) 
-      ? path.join(CONFIG.ARCHIVE_DIR, `${Date.now()}_${fileName}`)
-      : archivePath;
-      
-    fs.renameSync(processingPath, finalArchivePath);
-    console.log(`   📦 Archived original: ${finalArchivePath}`);
+    // 3. Archive Original using new outputManager
+    const archivePath = archiveFile(processingPath, CONFIG.ARCHIVE_DIR);
+    console.log(`   📦 Archived original: ${archivePath}`);
+
+    // 4. Update index file
+    createIndexFile(CONFIG.OUTPUT_ARTICLES_DIR);
 
   } catch (error) {
     console.error(`❌ Error processing ${fileName}:`, error);
-    
-    // 4. Move to Error Directory
+
+    // Move to Error Directory
     const errorPath = path.join(CONFIG.ERRORS_DIR, fileName);
     if (fs.existsSync(processingPath)) {
       fs.renameSync(processingPath, errorPath);
-      // Write error log
       fs.writeFileSync(`${errorPath}.log`, JSON.stringify(error, null, 2));
       console.log(`   ⚠️  Moved to Errors: ${errorPath}`);
     }

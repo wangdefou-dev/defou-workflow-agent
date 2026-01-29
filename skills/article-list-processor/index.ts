@@ -1,45 +1,28 @@
 import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
-import Anthropic from '@anthropic-ai/sdk';
 import pLimit from 'p-limit';
 import fetch from 'node-fetch';
 import { JSDOM } from 'jsdom';
 import { Readability } from '@mozilla/readability';
 import chokidar from 'chokidar';
 import { spawn } from 'child_process';
+import { saveOutput, getOutputDir } from '../../src/outputManager';
+import { initializeEnv, initializeAnthropic, callClaude } from '../../src/skillUtils';
+import { buildArticleLinkPrompt, SYSTEM_MESSAGE } from '../../src/prompts/defouStanley';
 
 // 1. Load Environment Variables
-const projectRoot = path.resolve(__dirname, '../../');
-const envPath = path.join(projectRoot, '.env');
+const projectRoot = initializeEnv();
 
-console.log(`Loading .env from: ${envPath}`);
-if (fs.existsSync(envPath)) {
-  console.log('✅ .env file found');
-} else {
-  console.error('❌ .env file NOT found');
-}
+// 2. Initialize Anthropic Client
+const anthropic = initializeAnthropic();
 
-dotenv.config({ path: envPath, override: true });
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL;
-const MOCK_MODE = process.env.MOCK_MODE === 'true';
-
-// 2. Define Directories
+// 3. Define Directories
 const INPUT_DIR = path.join(projectRoot, 'local_inputs');
-const OUTPUT_DIR = path.join(projectRoot, 'outputs', 'defou-stanley-posts');
 const ARCHIVE_DIR = path.join(projectRoot, 'archive');
 
 // Ensure directories exist
-[INPUT_DIR, OUTPUT_DIR, ARCHIVE_DIR].forEach(dir => {
+[INPUT_DIR, ARCHIVE_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
-
-// 3. Initialize Anthropic Client
-const anthropic = new Anthropic({
-  apiKey: ANTHROPIC_API_KEY || 'dummy',
-  baseURL: ANTHROPIC_BASE_URL,
 });
 
 interface ArticleItem {
@@ -112,81 +95,21 @@ async function fetchArticleContent(url: string): Promise<string> {
 async function generateContent(articleTitle: string, articleContent: string, sourceLink: string) {
   console.log(`🤖 Generating content for: "${articleTitle}"...`);
 
-  if (MOCK_MODE) {
-    return `# Mock Content for ${articleTitle}\n\nGenerated in Mock Mode.`;
-  }
-
-  const prompt = `
-You are "Defou x Stanley", a top-tier content expert.
-
-**Task**: Rewrite the following article into a viral "Defou x Stanley" style post.
-
-**Source Article Title**: ${articleTitle}
-**Source Article Content**: 
-${articleContent.slice(0, 8000)}... (truncated)
-
-**Style Requirements**:
-1.  **Insightful**: Peel back the layers to reveal the core essence.
-2.  **Smart Routing**: Match the topic to T1 (Hotspot), T2 (Anti-Chicken Soup), T3 (Roast/Satire), or T4 (Dry Goods).
-3.  **Minimalist & Sharp**: No fluff. Start with a reversal. Cold, restrained tone.
-4.  **Structure**: Re-structure scattered thoughts into a logical flow.
-
-**Output Format (Markdown)**:
-
-# 🚀 Defou x Stanley Content Generation
-
-## 1. Routing & Strategy
-* **Topic**: ${articleTitle}
-* **Matched Template**: [T1/T2/T3/T4]
-* **Angle**: [Selected Angle]
-* **Reason**: [Why this angle?]
-
----
-
-## 2. Content Drafting
-
-### 🔥 Version A: Stanley Style (Viral)
-
-> **Hooks**
-> * [Hook 1]...
-
-**Body:**
-
-[Content here...]
-
-**Score:** [X]/100
-
----
-
-### 🧠 Version B: Defou Style (Deep Insight)
-
-> **Hooks**
-> * [Hook 1]...
-
-**Body:**
-
-[Content here...]
-
-**Score:** [X]/100
-
----
-
-## 3. Publishing Advice
-* **Time**: [Time]
-* **Reason**: [Reason]
-`;
-
-  const msg = await anthropic.messages.create({
-    model: "anthropic/claude-sonnet-4",
-    max_tokens: 4000,
-    temperature: 0.7,
-    system: "You are Defou x Stanley, a viral content expert.",
-    messages: [
-      { role: "user", content: prompt }
-    ]
+  const prompt = buildArticleLinkPrompt({
+    title: articleTitle,
+    content: articleContent.slice(0, 8000),
+    link: sourceLink,
+    includeAIStyleRules: false
   });
 
-  return (msg.content[0] as any).text;
+  return await callClaude({
+    anthropic,
+    system: SYSTEM_MESSAGE,
+    prompt,
+    model: "claude-sonnet-4-5-20250929",
+    maxTokens: 4000,
+    temperature: 0.7
+  });
 }
 
 /**
@@ -256,24 +179,21 @@ async function processInputFile(filePath: string) {
           // 2. Generate
           const generatedContent = await generateContent(article.title, content, article.link);
 
-          // 3. Save Output
-          const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-          const safeTitle = article.title.replace(/[^a-z0-9\u4e00-\u9fa5]/gi, '_').slice(0, 20);
-          const outputFilename = `list_${dateStr}_${safeTitle}.md`;
-          const outputPath = path.join(OUTPUT_DIR, outputFilename);
+          // 3. Save Output using unified outputManager
+          const outputDir = getOutputDir(projectRoot, 'posts');
+          const outputPath = saveOutput({
+            outputDir,
+            content: generatedContent,
+            metadata: {
+              sourceType: 'article_link',
+              sourceTitle: article.title,
+              sourceLink: article.link,
+              sourceFile: filename,
+              generatedAt: new Date(),
+              processedBy: 'article-list-processor'
+            }
+          });
 
-          const finalContent = `
-<!--
-Original Title: ${article.title}
-Source Link: ${article.link}
-Input List File: ${filename}
-Generated: ${new Date().toLocaleString()}
--->
-
-${generatedContent}
-`;
-
-          fs.writeFileSync(outputPath, finalContent);
           console.log(`✅ Saved post to: ${outputPath}`);
           successCount++;
 

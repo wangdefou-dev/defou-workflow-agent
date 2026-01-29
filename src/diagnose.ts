@@ -13,7 +13,7 @@ console.log(`🔑 Key length: ${API_KEY?.length}`);
 console.log(`🌐 Base URL: ${BASE_URL}`);
 
 const payload = {
-  model: "anthropic/claude-sonnet-4",
+  model: "claude-sonnet-4-5-20250929",
   max_tokens: 10,
   messages: [{ role: "user", content: "Hi" }]
 };
