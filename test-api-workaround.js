@@ -10,7 +10,7 @@ console.log('Testing API with system in messages...\n');
 
 // 方法1：将 system 作为第一条 user 消息
 client.messages.create({
-  model: 'claude-sonnet-4-5-20250929',
+  model: 'anthropic/claude-sonnet-4.5',
   max_tokens: 100,
   temperature: 0.7,
   messages: [

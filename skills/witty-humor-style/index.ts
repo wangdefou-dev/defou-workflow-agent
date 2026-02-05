@@ -48,7 +48,7 @@ ${hotList.slice(0, 50).map((item, idx) => `${idx + 1}. ${item.title} (${item.sou
     anthropic,
     system: "你是一位内容策略专家，擅长选题分析。",
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 2000,
     temperature: 0.7
   });
@@ -82,7 +82,7 @@ async function generateWittyContent(topic: HotItem & { reason: string }, index: 
     anthropic,
     system: WITTY_HUMOR_SYSTEM,
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 800, // 200 个汉字约需 400-600 tokens，留余量
     temperature: 0.8 // 稍微提高温度，增加创意性
   });

@@ -38,7 +38,7 @@ async function generateDefouStyle(title: string, content: string) {
     anthropic,
     system: SYSTEM_MESSAGE,
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 4000,
     temperature: 0.7
   });
@@ -61,7 +61,7 @@ async function generateWittyStyle(title: string, content: string) {
     anthropic,
     system: WITTY_HUMOR_SYSTEM,
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 1000,
     temperature: 0.8
   });

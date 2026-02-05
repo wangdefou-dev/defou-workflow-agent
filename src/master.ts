@@ -148,7 +148,7 @@ ${hotList.slice(0, 50).map((item, idx) => `${idx + 1}. ${item.title} (${item.sou
     anthropic,
     system: "你是一位内容策略专家，擅长选题分析。",
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 2000,
     temperature: 0.7
   });
@@ -183,9 +183,9 @@ async function generateDualStyleContent(topic: HotItem & { reason: string }, ind
 
   const defouContent = await callClaude({
     anthropic,
-    system: "你是 Defou x Stanley，���位病毒式内容专家。",
+    system: "你是 Defou x Stanley，一位病毒式内容专家。",
     prompt: defouPrompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 4000,
     temperature: 0.7
   });
@@ -203,7 +203,7 @@ async function generateDualStyleContent(topic: HotItem & { reason: string }, ind
     anthropic,
     system: WITTY_HUMOR_SYSTEM,
     prompt: wittyPrompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 800, // 200 个汉字约需 400-600 tokens，留余量
     temperature: 0.8
   });
@@ -261,7 +261,7 @@ async function verifyAndOptimize(filePath: string, content: string, topic: HotIt
     anthropic,
     system: "You are a Viral Content Validator.",
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 4000,
     temperature: 0.7
   });

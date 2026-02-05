@@ -1,5 +1,15 @@
 const Anthropic = require('@anthropic-ai/sdk');
-require('dotenv').config();
+require('dotenv').config({ override: true });
+
+// Sanitize ANTHROPIC_BASE_URL if it contains Markdown syntax
+if (process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_BASE_URL.includes('](')) {
+    console.log('⚠️  Detected Markdown in ANTHROPIC_BASE_URL, sanitizing...');
+    const match = process.env.ANTHROPIC_BASE_URL.match(/\((https?:\/\/[^)]+)\)/);
+    if (match) {
+        process.env.ANTHROPIC_BASE_URL = match[1];
+        console.log('✅ Sanitized Base URL:', process.env.ANTHROPIC_BASE_URL);
+    }
+}
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -9,11 +19,11 @@ const client = new Anthropic({
 console.log('Testing API with:');
 console.log('- Base URL:', process.env.ANTHROPIC_BASE_URL);
 console.log('- API Key length:', process.env.ANTHROPIC_API_KEY?.length);
-console.log('- Model: claude-sonnet-4-5-20250929');
+console.log('- Model: anthropic/claude-sonnet-4.5');
 console.log('\nSending request...\n');
 
 client.messages.create({
-  model: 'claude-sonnet-4-5-20250929',
+  model: 'anthropic/claude-sonnet-4.5',
   max_tokens: 10,
   messages: [{ role: 'user', content: 'Hi' }]
 }).then(response => {

@@ -73,7 +73,7 @@ async function processFile(filePath: string, fileName: string) {
       markdownContent = getMockResult();
     } else {
       const msg = await anthropic.messages.create({
-        model: "claude-sonnet-4-5-20250929",
+        model: "anthropic/claude-sonnet-4.5",
         max_tokens: 4000,
         temperature: 0.7,
         system: DEFOU_SYSTEM_PROMPT,

@@ -42,17 +42,15 @@ For the suggestions, use this format:
     return `# Mock Analysis\n\n- Mock Suggestion 1\n- Mock Suggestion 2`;
   }
 
-  const msg = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 4000,
-    temperature: 0.7,
+  // Use callClaude utility instead of direct SDK call to support OpenAI-compatible APIs
+  return await callClaude({
+    anthropic,
     system: "You are an expert content strategist and trend analyst.",
-    messages: [
-      { role: "user", content: prompt }
-    ]
+    prompt,
+    model: "anthropic/claude-sonnet-4.5",
+    maxTokens: 4000,
+    temperature: 0.7
   });
-
-  return (msg.content[0] as any).text;
 }
 
 /**

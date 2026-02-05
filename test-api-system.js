@@ -9,7 +9,7 @@ const client = new Anthropic({
 console.log('Testing API with system parameter...\n');
 
 client.messages.create({
-  model: 'claude-sonnet-4-5-20250929',
+  model: 'anthropic/claude-sonnet-4.5',
   max_tokens: 100,
   temperature: 0.7,
   system: '你是一位内容策略专家，擅长选题分析。',

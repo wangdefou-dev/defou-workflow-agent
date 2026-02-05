@@ -106,7 +106,7 @@ async function generateContent(articleTitle: string, articleContent: string, sou
     anthropic,
     system: SYSTEM_MESSAGE,
     prompt,
-    model: "claude-sonnet-4-5-20250929",
+    model: "anthropic/claude-sonnet-4.5",
     maxTokens: 4000,
     temperature: 0.7
   });
